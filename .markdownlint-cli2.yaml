@@ -1,0 +1,12 @@
+# Configuração do markdownlint-cli2 para o repositório Artifact Analyzer
+config:
+  MD013: false # Ignora comprimento máximo de linha (útil para badges e URLs extensas)
+  MD022: false # Ignora exigência de linhas em branco ao redor de títulos
+  MD024: false # Permite títulos duplicados em seções diferentes
+  MD031: false # Ignora linhas em branco ao redor de blocos de código
+  MD047: false # Ignora exigência de linha em branco no final do arquivo
+
+ignores:
+  - "node_modules"
+  - "dist"
+  - "LICENSE"

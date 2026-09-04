@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'self';" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=()" />
+
+    <title>Processador Computacional de Listas</title>
+
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <script type="module" src="assets/js/script.js"></script>
+</head>
+
+<body>
+
+    <main class="container">
+        <header>
+            <h1>Processador Dinâmico e Comparador de Listas</h1>
+            <p>Higienize, cruze e aplique álgebra de conjuntos em múltiplos vetores de dados localmente</p>
+        </header>
+
+        <section class="lists-grid">
+            <div class="list-card">
+                <input type="text" id="headA" class="card-header-input" value="Lista_A">
+                <label class="file-label">
+                    📁 Upload TXT/CSV
+                    <input type="file" id="fileA" data-target="txtA">
+                </label>
+                <textarea id="txtA" placeholder="Cole os itens aqui (um por linha)..."></textarea>
+            </div>
+            <div class="list-card">
+                <input type="text" id="headB" class="card-header-input" value="Lista_B">
+                <label class="file-label">
+                    📁 Upload TXT/CSV
+                    <input type="file" id="fileB" data-target="txtB">
+                </label>
+                <textarea id="txtB" placeholder="Cole os itens aqui (um por linha)..."></textarea>
+            </div>
+            <div class="list-card">
+                <input type="text" id="headC" class="card-header-input" value="Lista_C">
+                <label class="file-label">
+                    📁 Upload TXT/CSV
+                    <input type="file" id="fileC" data-target="txtC">
+                </label>
+                <textarea id="txtC" placeholder="Cole os itens aqui (um por linha)..."></textarea>
+            </div>
+        </section>
+
+        <section class="rules-panel">
+            <h2 class="rules-title">Defina o Critério de Interseção / Operação Booleana:</h2>
+            <div class="radio-group">
+                <label class="radio-item">
+                    <input type="radio" name="logicRule" value="union" checked>
+                    <span><strong>União Global:</strong> Unificar todos os itens únicos de todas as listas (Remover
+                        Duplicadas).</span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="logicRule" value="intersectAB">
+                    <span><strong>Interseção Simples:</strong> Apenas itens que aparecem simultaneamente na
+                        <strong>Lista A</strong> E na <strong>Lista B</strong>.</span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="logicRule" value="diffAB">
+                    <span><strong>Exclusividade:</strong> Itens que estão na <strong>Lista A</strong>, mas NÃO estão na
+                        <strong>Lista B</strong>.</span>
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="logicRule" value="complexRule">
+                    <span><strong>Filtro Avançado:</strong> Presentes na <strong>Lista A</strong> E na <strong>Lista
+                            B</strong>, mas que NÃO estejam na <strong>Lista C</strong>.</span>
+                </label>
+            </div>
+        </section>
+
+        <section class="actions">
+            <button type="button" id="btnProcess" class="btn-process">Executar Análise de Dados</button>
+            <button type="button" id="btnClear" class="btn-clear">Limpar Tudo</button>
+            <button type="button" id="btnExportTxt" class="btn-export">Exportar TXT</button>
+            <button type="button" id="btnExportCsv" class="btn-export">Exportar CSV (Excel/Sheets)</button>
+        </section>
+
+        <section class="results-box" id="resultsBox">
+            <div class="results-count" id="resultsCount">0 itens processados.</div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-index">Índice</th>
+                            <th id="thResultName">Item Mutado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+</body>
+
+</html>

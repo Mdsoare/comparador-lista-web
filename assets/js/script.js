@@ -3,6 +3,10 @@
  * DevSecOps Focus: Strict CSP, Safe DOM Manipulation & Zero External Data Leakage.
  */
 
+import { buildGlobalDictionary, applySetAlgebra, filterDataset } from './engine.js';
+import { renderResultsTable, updateMetrics } from './ui.js';
+import { exportProcessedData } from './export.js';
+
 'use strict';
 
 // Frame Busting (Proteção contra Clickjacking)
@@ -10,7 +14,8 @@ if (self !== top) {
     top.location = self.location;
 }
 
-let finalOutputList = [];
+// Banco de dados volátil em memória: Array<{ value: string, origins: Array<string> }>
+let memoryDatabase = [];
 
 /**
  * Lê arquivos locais via FileReader de forma segura
@@ -36,191 +41,147 @@ function handleFileUpload(event) {
 }
 
 /**
- * Higieniza a entrada de texto e converte para array
- * @param {string} id 
- * @returns {Array<string>}
- */
-function getCleanArray(id) {
-    const element = document.getElementById(id);
-    if (!element) {
-        return [];
-    }
-    return element.value
-        .split('\n')
-        .map((item) => item.trim())
-        .filter((item) => item.length > 0);
-}
-
-/**
- * Renderiza os resultados em tela manipulando o DOM com segurança contra XSS
- */
-function renderResults() {
-    const box = document.getElementById('resultsBox');
-    const tbody = document.getElementById('resultsTableBody');
-    const countLabel = document.getElementById('resultsCount');
-    const btnExportTxt = document.getElementById('btnExportTxt');
-    const btnExportCsv = document.getElementById('btnExportCsv');
-
-    tbody.innerHTML = '';
-    countLabel.textContent = `✔ Processamento concluído: ${finalOutputList.length} itens únicos localizados.`;
-
-    finalOutputList.forEach((item, index) => {
-        const tr = document.createElement('tr');
-
-        const tdIndex = document.createElement('td');
-        tdIndex.style.color = 'var(--text-muted)';
-        tdIndex.textContent = index + 1;
-
-        const tdVal = document.createElement('td');
-        tdVal.textContent = item; // Proteção XSS nativa (.textContent)
-
-        tr.appendChild(tdIndex);
-        tr.appendChild(tdVal);
-        tbody.appendChild(tr);
-    });
-
-    box.style.display = 'block';
-    btnExportTxt.style.display = 'inline-block';
-    btnExportCsv.style.display = 'inline-block';
-}
-
-/**
- * Processa a álgebra de conjuntos baseada nas regras selecionadas
+ * Executa o motor de comparação e álgebra de conjuntos
  */
 function processLists() {
-    const arrA = getCleanArray('txtA');
-    const arrB = getCleanArray('txtB');
-    const arrC = getCleanArray('txtC');
+    // 1. Coleta e mapeamento das 5 listas
+    const rawLists = [1, 2, 3, 4, 5].map((i) => ({
+        name: document.getElementById(`head${i}`)?.value.trim() || `Lista_${i}`,
+        content: document.getElementById(`txt${i}`)?.value || ''
+    }));
+
+    const options = {
+        lowercase: document.getElementById('chkLowercase')?.checked ?? true,
+        trim: document.getElementById('chkTrim')?.checked ?? true
+    };
+
+    // 2. Construção do Dicionário Global de Frequência e Origens (engine.js)
+    const { globalDict, totalRawCount } = buildGlobalDictionary(rawLists, options);
+
+    // 3. Identificação de listas ativas e regra selecionada
+    const activeListNames = rawLists
+        .filter((l) => l.content.trim().length > 0)
+        .map((l) => l.name);
 
     const selectedRule = document.querySelector('input[name="logicRule"]:checked');
-    if (!selectedRule) {
-        return;
+    const rule = selectedRule ? selectedRule.value : 'unionAll';
+
+    try {
+        // 4. Aplicação da álgebra de conjuntos (engine.js)
+        const filteredItems = applySetAlgebra(globalDict, activeListNames, rule);
+
+        // 5. Atualização da base volátil em memória
+        memoryDatabase = filteredItems.map((item) => ({
+            value: item,
+            origins: Array.from(globalDict[item])
+        }));
+
+        // 6. Atualização de métricas de volumetria (ui.js)
+        updateMetrics(totalRawCount, memoryDatabase.length, {
+            metTotalRaw: document.getElementById('metTotalRaw'),
+            metTotalClean: document.getElementById('metTotalClean'),
+            metDuplicates: document.getElementById('metDuplicates'),
+            metricsBar: document.getElementById('metricsBar')
+        });
+
+        // 7. Renderização inicial dos dados na tabela (ui.js)
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        renderResultsTable(memoryDatabase, memoryDatabase.length, {
+            tbody: document.getElementById('resultsTableBody'),
+            resultsCountEl: document.getElementById('resultsCount')
+        });
+
+        // Exibe elementos visuais de saída
+        const box = document.getElementById('resultsBox');
+        const btnExportTxt = document.getElementById('btnExportTxt');
+        const btnExportCsv = document.getElementById('btnExportCsv');
+
+        if (box) box.style.display = 'block';
+        if (btnExportTxt) btnExportTxt.style.display = 'inline-block';
+        if (btnExportCsv) btnExportCsv.style.display = 'inline-block';
+
+    } catch (error) {
+        alert(error.message);
     }
-
-    const rule = selectedRule.value;
-    let result = [];
-
-    const setB = new Set(arrB);
-    const setC = new Set(arrC);
-
-    switch (rule) {
-        case 'union':
-            result = Array.from(new Set([...arrA, ...arrB, ...arrC]));
-            break;
-        case 'intersectAB':
-            result = arrA.filter((x) => setB.has(x));
-            break;
-        case 'diffAB':
-            result = arrA.filter((x) => !setB.has(x));
-            break;
-        case 'complexRule':
-            result = arrA.filter((x) => setB.has(x) && !setC.has(x));
-            break;
-        default:
-            break;
-    }
-
-    finalOutputList = Array.from(new Set(result));
-    renderResults();
 }
 
 /**
- * Reseta todos os campos, listas e resultados da interface
+ * Filtra a tabela em tempo real com suporte a Texto Simples e Regex
+ */
+function handleFilter() {
+    const searchInput = document.getElementById('searchInput');
+    const chkRegex = document.getElementById('chkRegexSearch');
+
+    if (!searchInput) return;
+
+    const query = searchInput.value.trim();
+    const isRegexMode = chkRegex ? chkRegex.checked : false;
+
+    const filtered = filterDataset(memoryDatabase, query, isRegexMode);
+
+    if (filtered === null) {
+        const countLabel = document.getElementById('resultsCount');
+        if (countLabel) countLabel.textContent = '⚠️ Sintaxe Regex inválida...';
+        return;
+    }
+
+    renderResultsTable(filtered, memoryDatabase.length, {
+        tbody: document.getElementById('resultsTableBody'),
+        resultsCountEl: document.getElementById('resultsCount')
+    });
+}
+
+/**
+ * Reseta todos os campos, métricas e memória da interface
  */
 function clearAll() {
-    ['txtA', 'txtB', 'txtC'].forEach((id) => {
-        const textarea = document.getElementById(id);
-        if (textarea) {
-            textarea.value = '';
-        }
+    [1, 2, 3, 4, 5].forEach((i) => {
+        const txt = document.getElementById(`txt${i}`);
+        const file = document.getElementById(`file${i}`);
+        if (txt) txt.value = '';
+        if (file) file.value = '';
     });
 
-    ['fileA', 'fileB', 'fileC'].forEach((id) => {
-        const fileInput = document.getElementById(id);
-        if (fileInput) {
-            fileInput.value = '';
-        }
-    });
-
-    finalOutputList = [];
+    memoryDatabase = [];
 
     const box = document.getElementById('resultsBox');
+    const metricsBar = document.getElementById('metricsBar');
     const tbody = document.getElementById('resultsTableBody');
     const btnExportTxt = document.getElementById('btnExportTxt');
     const btnExportCsv = document.getElementById('btnExportCsv');
+    const searchInput = document.getElementById('searchInput');
 
-    if (tbody) {
-        tbody.innerHTML = '';
-    }
-    if (box) {
-        box.style.display = 'none';
-    }
-    if (btnExportTxt) {
-        btnExportTxt.style.display = 'none';
-    }
-    if (btnExportCsv) {
-        btnExportCsv.style.display = 'none';
-    }
+    if (tbody) tbody.replaceChildren();
+    if (box) box.style.display = 'none';
+    if (metricsBar) metricsBar.style.display = 'none';
+    if (btnExportTxt) btnExportTxt.style.display = 'none';
+    if (btnExportCsv) btnExportCsv.style.display = 'none';
+    if (searchInput) searchInput.value = '';
 }
 
-/**
- * Exporta os dados sanitizados localmente
- * @param {'txt' | 'csv'} format 
- */
-function exportData(format) {
-    if (finalOutputList.length === 0) {
-        return;
-    }
-
-    let outputContent = '';
-    let mimeType = '';
-    let fileExtension = '';
-
-    const headerName = 'Resultado_Processado';
-
-    if (format === 'txt') {
-        outputContent = finalOutputList.join('\n');
-        mimeType = 'text/plain;charset=utf-8';
-        fileExtension = 'txt';
-    } else if (format === 'csv') {
-        outputContent = `"${headerName}"\n` + finalOutputList.map((item) => `"${item.replace(/"/g, '""')}"`).join('\n');
-        mimeType = 'text/csv;charset=utf-8';
-        fileExtension = 'csv';
-    }
-
-    const blob = new Blob([outputContent], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `data_output_${Date.now()}.${fileExtension}`);
-    document.body.appendChild(link);
-
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
-
-// Inicialização segura dos manipuladores de eventos após a carga do DOM
+// Inicialização segura dos manipuladores de eventos pós DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
     const btnProcess = document.getElementById('btnProcess');
     const btnClear = document.getElementById('btnClear');
     const btnExportTxt = document.getElementById('btnExportTxt');
     const btnExportCsv = document.getElementById('btnExportCsv');
+    const searchInput = document.getElementById('searchInput');
 
-    if (btnProcess) {
-        btnProcess.addEventListener('click', processLists);
-    }
-    if (btnClear) {
-        btnClear.addEventListener('click', clearAll);
-    }
-    if (btnExportTxt) {
-        btnExportTxt.addEventListener('click', () => exportData('txt'));
-    }
-    if (btnExportCsv) {
-        btnExportCsv.addEventListener('click', () => exportData('csv'));
-    }
+    if (btnProcess) btnProcess.addEventListener('click', processLists);
+    if (btnClear) btnClear.addEventListener('click', clearAll);
+    
+    // Delegação para o módulo de exportação isolado (export.js)
+    if (btnExportTxt) btnExportTxt.addEventListener('click', () => exportProcessedData(memoryDatabase, 'txt'));
+    if (btnExportCsv) btnExportCsv.addEventListener('click', () => exportProcessedData(memoryDatabase, 'csv'));
 
+    // Filtro dinâmico na tabela
+    if (searchInput) searchInput.addEventListener('input', handleFilter);
+
+    // Upload seguro de arquivos
     const fileInputs = document.querySelectorAll('input[type="file"]');
     fileInputs.forEach((input) => {
         input.addEventListener('change', handleFileUpload);

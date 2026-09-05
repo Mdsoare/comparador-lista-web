@@ -10,13 +10,13 @@
     "preview": "vite preview",
     "lint:html": "htmlhint index.html",
     "lint:css": "stylelint \"assets/css/**/*.css\"",
-    "lint:js": "eslint \"assets/js/**/*.js\"",
+    "lint:js": "eslint assets/js/",
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "lint": "npm run lint:html && npm run lint:css && npm run lint:js && npm run lint:md",
     "lint:css:fix": "stylelint \"assets/css/**/*.css\" --fix",
-    "lint:js:fix": "eslint \"assets/js/**/*.js\" --fix",
+    "lint:js:fix": "eslint assets/js/ --fix",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\"",
-    "test": "npm run lint"
+    "test": "npm run lint && npm run build"
   },
   "keywords": [
     "devsecops",

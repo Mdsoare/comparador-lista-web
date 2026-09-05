@@ -77,7 +77,10 @@ jobs:
         run: npx stylelint "assets/css/**/*.css" --fix
 
       - name: Análise Estática de Código JavaScript (ESLint)
-        run: npx eslint "assets/js/**/*.js" --fix
+        run: npx eslint . --fix
+      
+      - name: Validar Build do Bundle (Vite)
+        run: npx vite build --dry-run || npm run build
 
   # -------------------------------------------------------------
   # JOB 4: Qualidade de Sintaxe Docs (Markdown)

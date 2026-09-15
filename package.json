@@ -1,38 +1,31 @@
 {
-  "name": "comparador-lista-web",
+  "name": "demon-slayer",
   "version": "1.0.0",
-  "description": "[![CI Pipeline](https://github.com/Mdsoare/artifact-analyzer/actions/workflows/ci-pipeline.yml/badge.svg)](https://github.com/Mdsoare/artifact-analyzer/actions/workflows/ci-pipeline.yml)\r [![Deploy to GitHub Pages](https://github.com/Mdsoare/artifact-analyzer/actions/workflows/deploy.yml/badge.svg)](https://github.com/Mdsoare/artifact-analyzer/actions/workflows/deploy.yml)\r [![Security Rating](https://img.shields.io/badge/Security-DevSecOps%20Hardened-green?style=flat&logo=github)](https://github.com/Mdsoare/artifact-analyzer/security/code-scanning)\r ![Security: CSP Compliant](https://img.shields.io/badge/Security-CSP--Compliant-success.svg)\r ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)",
+  "description": "**Uma aplicação web para fãs de Demon Slayer, criada durante a Imersão Dev com Gemini.**",
   "main": "assets/js/script.js",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
     "lint:html": "htmlhint index.html",
     "lint:css": "stylelint \"assets/css/**/*.css\"",
-    "lint:js": "eslint assets/js/",
+    "lint:js": "eslint \"assets/js/**/*.js\"",
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "lint": "npm run lint:html && npm run lint:css && npm run lint:js && npm run lint:md",
     "lint:css:fix": "stylelint \"assets/css/**/*.css\" --fix",
-    "lint:js:fix": "eslint assets/js/ --fix",
+    "lint:js:fix": "eslint \"assets/js/**/*.js\" --fix",
     "lint:md:fix": "markdownlint-cli2 --fix \"**/*.md\"",
-    "test": "npm run lint && npm run build"
+    "test": "npm run lint"
   },
-  "keywords": [
-    "devsecops",
-    "security"
-  ],
+  "keywords": [],
   "author": "Marcelo Soares",
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.9.1",
+    "eslint": "^10.10.0",
     "globals": "^17.12.0",
     "htmlhint": "^1.9.2",
     "markdownlint-cli2": "^0.23.2",
-    "stylelint": "^17.14.1",
-    "stylelint-config-standard": "^40.0.0",
-    "vite": "^8.2.2"
+    "stylelint": "^17.15.0",
+    "stylelint-config-standard": "^40.0.0"
   },
   "overrides": {
     "smol-toml": ">1.7.0"
